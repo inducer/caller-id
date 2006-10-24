@@ -1,0 +1,59 @@
+#! /usr/bin/env python
+
+import socket
+import qt
+import qtnetwork
+import sys
+
+persistent_objects = []
+
+class CallWindow:
+    def __init__(self, socket):
+        data = sockdev.readBlock(1024)
+        box = qt.QVBox(None, "passive_popup", qt.Qt.WX11BypassWM)
+        label = qt.QLabel("Call received:\n%s" % data, box)
+
+        font = qt.QFont()
+        font.setBold(True)
+        font.setPointSizeFloat(font.pointSizeFloat()*3)
+        label.setFont(font)
+        label.setAlignment(qt.Qt.AlignHCenter)
+
+        button = qt.QPushButton("OK", box)
+        button.connect(button, qt.SIGNAL("clicked()"), self.close)
+
+        box.setSpacing(10)
+        box.setMargin(5)
+        box.setFrameShape(qt.QFrame.Panel)
+        box.setFrameShadow(qt.QFrame.Raised)
+
+        min_width = box.minimumSizeHint().width()
+        desk_width = qt.QApplication.desktop().width()
+        box.move((desk_width-min_width)/2, 0)
+        box.show()
+
+        self.Widget = box
+        persistent_objects.append(self)
+
+    def close(self):
+        self.Widget.close()
+        persistent_objects.remove(self)
+
+app = qt.QApplication(sys.argv)
+sockdev = qtnetwork.QSocketDevice(qtnetwork.QSocketDevice.Datagram)
+address = qtnetwork.QHostAddress()
+address.setAddress("0.0.0.0")
+sockdev.bind(address, 17000)
+
+notifier = qt.QSocketNotifier(sockdev.socket(),
+                              qt.QSocketNotifier.Read)
+app.connect(notifier, qt.SIGNAL("activated(int)"), CallWindow)
+
+if "--quit-button" in sys.argv:
+    quit_button = qt.QPushButton("Quit", None)
+    app.setMainWidget(quit_button)
+    app.connect(quit_button, qt.SIGNAL("clicked()"), app.exit)
+    quit_button.show()
+
+app.exec_loop()
+
